@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Data Aggregator</title>
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+        .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); text-align: center; max-width: 400px; }
+        h1 { color: #111; font-size: 24px; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; line-height: 1.5; }
+        #link-button { background-color: #0061f2; color: white; border: none; padding: 14px 28px; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%; }
+        #link-button:hover { background-color: #0052ce; }
+        #link-button:disabled { background-color: #ccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Connect Your Bank</h1>
+        <p>Securely connect your financial accounts to sync data with your Airtable dashboard.</p>
+        <button id="link-button">Connect Account</button>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // 1. Paste your Make.com Webhook URL here
+        const MAKE_WEBHOOK_URL = 'PASTE_YOUR_MAKE_WEBHOOK_URL_HERE';
+        
+        // 2. Paste a temporary Link Token from your Plaid Dashboard here
+        const LINK_TOKEN = 'PASTE_YOUR_LINK_TOKEN_HERE';
+        // ---------------------
+
+        const handler = Plaid.create({
+            token: LINK_TOKEN,
+            onSuccess: (public_token, metadata) => {
+                // This sends the token to your Make.com scenario
+                fetch(MAKE_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        public_token: public_token,
+                        institution_name: metadata.institution.name,
+                        link_session_id: metadata.link_session_id
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Success! Your bank is connected. Check Make.com to see the data flow.');
+                    } else {
+                        alert('Error sending data to Make. Check your Webhook URL.');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            },
+            onLoad: () => { console.log('Plaid Link loaded'); },
+            onExit: (err, metadata) => {
+                if (err != null) { console.error('Plaid Link Error:', err); }
+            },
+            onEvent: (eventName, metadata) => { console.log('Event:', eventName); }
+        });
+
+        document.getElementById('link-button').onclick = function() {
+            if (LINK_TOKEN === 'PASTE_YOUR_LINK_TOKEN_HERE') {
+                alert('You forgot to add your Link Token to the code!');
+                return;
+            }
+            handler.open();
+        };
+    </script>
+</body>
+</html>
